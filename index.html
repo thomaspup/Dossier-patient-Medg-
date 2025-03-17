@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedAssist IA - Dossier Patient</title>
+    <!-- Pas besoin de Font Awesome, nous utilisons des emojis Unicode -->
+    <style>
+        :root {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --secondary: #34495e;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --grey: #95a5a6;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            grid-template-rows: 60px 1fr;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            grid-row: 1 / span 2;
+            background-color: var(--secondary);
+            color: white;
+            padding: 20px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-logo img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .sidebar-logo h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .sidebar-menu i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-menu .badge {
+            margin-left: auto;
+            background-color: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 2;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .header-search {
+            display: flex;
+            align-items: center;
+            background-color: var(--light);
+            border-radius: 20px;
+            padding: 5px 15px;
+            width: 300px;
+        }
+
+        .header-search input {
+            background: transparent;
+            border: none;
+            padding: 5px;
+            outline: none;
+            width: 100%;
+        }
+
+        .header-search i {
+            color: var(--grey);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+        }
+
+        .header-actions > * {
+            margin-left: 15px;
+        }
+
+        .header-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        .header-profile img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        /* Main content */
+        .main-content {
+            grid-column: 2;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .page-title {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title h2 {
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+        }
+
+        .action-buttons button {
+            margin-left: 10px;
+        }
+
+        /* Cards */
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h3 {
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .card-footer {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        /* Notification card */
+        .notification-card {
+            background-color: white;
+            border-left: 4px solid var(--primary);
+        }
+
+        .notification-card .card-header {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+
+        .message-transcript {
+            background-color: var(--light);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .message-transcript::before {
+            content: '"';
+            font-size: 24px;
+            color: var(--grey);
+            position: absolute;
+            top: 5px;
+            left: 10px;
+        }
+
+        .message-transcript::after {
+            content: '"';
+            font-size: 24px;
+            color: var(--grey);
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+        }
+
+        .message-transcript p {
+            padding: 0 20px;
+        }
+
+        /* Action card */
+        .action-card {
+            border-left: 4px solid var(--success);
+        }
+
+        .prescription-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .prescription-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .prescription-item .checkbox {
+            margin-right: 15px;
+        }
+
+        .prescription-tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .prescription-tooltip .tooltip-content {
+            visibility: hidden;
+            width: 300px;
+            background-color: white;
+            box-shadow: var(--box-shadow);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            position: absolute;
+            z-index: 1;
+            top: -10px;
+            left: 125%;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .prescription-tooltip:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .radiocenter-list {
+            list-style: none;
+            margin: 15px 0;
+        }
+
+        .radiocenter-list li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            background-color: var(--light);
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+        }
+
+        .radiocenter-list i {
+            color: var(--primary);
+            margin-right: 10px;
+        }
+
+        .radiocenter-list .distance {
+            margin-left: auto;
+            background-color: var(--primary);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        /* Calendar */
+        .calendar-container {
+            background-color: var(--light);
+            border-radius: var(--border-radius);
+            padding: 15px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .calendar-day {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 10px;
+            text-align: center;
+        }
+
+        .calendar-day h4 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .time-slot {
+            display: block;
+            background-color: var(--light);
+            padding: 8px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .time-slot:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .time-slot.selected {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            outline: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon i {
+            margin-right: 8px;
+        }
+
+        /* Custom checkbox */
+        .custom-checkbox {
+            display: block;
+            position: relative;
+            padding-left: 35px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .custom-checkbox input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        .checkmark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 22px;
+            width: 22px;
+            background-color: #eee;
+            border-radius: 4px;
+        }
+
+        .custom-checkbox:hover input ~ .checkmark {
+            background-color: #ccc;
+        }
+
+        .custom-checkbox input:checked ~ .checkmark {
+            background-color: var(--primary);
+        }
+
+        .checkmark:after {
+            content: "";
+            position: absolute;
+            display: none;
+        }
+
+        .custom-checkbox input:checked ~ .checkmark:after {
+            display: block;
+        }
+
+        .custom-checkbox .checkmark:after {
+            left: 8px;
+            top: 4px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        /* Utilities */
+        .d-flex {
+            display: flex;
+        }
+
+        .align-center {
+            align-items: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mt-3 { margin-top: 1.5rem; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mb-3 { margin-bottom: 1.5rem; }
+
+        /* Media Queries */
+        @media (max-width: 992px) {
+            .app-container {
+                grid-template-columns: 60px 1fr;
+            }
+
+            .sidebar-logo h1, .sidebar-menu span {
+                display: none;
+            }
+
+            .sidebar-menu a {
+                justify-content: center;
+                padding: 15px;
+            }
+
+            .sidebar-menu i {
+                margin-right: 0;
+                font-size: 18px;
+            }
+
+            .sidebar-menu .badge {
+                position: absolute;
+                top: 5px;
+                right: 5px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-search {
+                width: 200px;
+            }
+
+            .calendar-days {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr;
+            }
+
+            .sidebar {
+                grid-row: 1;
+                padding: 10px;
+            }
+
+            .sidebar-menu {
+                display: flex;
+                overflow-x: auto;
+            }
+
+            .sidebar-menu a {
+                padding: 10px;
+            }
+
+            .header {
+                grid-column: 1;
+                grid-row: 2;
+                padding: 10px;
+            }
+
+            .main-content {
+                grid-column: 1;
+                grid-row: 3;
+                padding: 10px;
+            }
+
+            .header-search {
+                width: 150px;
+            }
+
+            .header-profile span {
+                display: none;
+            }
+
+            .calendar-days {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <img src="/api/placeholder/50/50" alt="MedAssist Logo">
+                <h1>MedAssist IA</h1>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active">🏠 <span>Tableau de bord</span></a></li>
+                <li><a href="#">👤 <span>Patients</span></a></li>
+                <li><a href="#">📅 <span>Rendez-vous</span></a></li>
+                <li><a href="#">📝 <span>Ordonnances</span></a></li>
+                <li><a href="#">✉️ <span>Messagerie</span> <span class="badge">3</span></a></li>
+                <li><a href="#">📊 <span>Statistiques</span></a></li>
+                <li><a href="#">📚 <span>Bibliothèque</span></a></li>
+                <li><a href="#">🧪 <span>Laboratoire</span></a></li>
+                <li><a href="#">🏥 <span>Hôpitaux</span></a></li>
+                <li><a href="#">💊 <span>Pharmacie</span></a></li>
+                <li><a href="#">⚙️ <span>Paramètres</span></a></li>
+            </ul>
+        </aside>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Rechercher un patient...">
+            </div>
+            <div class="header-actions">
+                <div>
+                    &#128276;
+                </div>
+                <div class="header-profile">
+                    <img src="/api/placeholder/40/40" alt="Dr. Durand">
+                    <span>Dr. Durand</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-title">
+                <h2>Dossier Patient: Pierre Martin</h2>
+                <div class="action-buttons">
+                    <button class="btn btn-outline">🖨️ Imprimer</button>
+                    <button class="btn btn-primary">➕ Nouvelle consultation</button>
+                </div>
+            </div>
+
+            <div class="card notification-card">
+                <div class="card-header">
+                    <h3>📨 Nouveau message vocal reçu aujourd'hui à 10:25</h3>
+                    <button class="btn btn-primary btn-icon">▶️ Écouter</button>
+                </div>
+                <div class="card-body">
+                    <div class="message-transcript">
+                        <p>
+                            Bonjour Docteur Durand, je vous contacte parce que je me suis foulé la cheville gauche, 
+                            elle est relativement gonflée et je ne peux pas me déplacer. Afin de ne pas aller aux urgences, 
+                            je me permets de vous laisser ce message vocal. Que dois-je faire? Pouvez-vous m'indiquer si 
+                            je peux prendre un rendez-vous chez vous prochainement? Sur votre agenda tout est complet, 
+                            en vous remerciant par avance, à très vite. Mr Martin
+                        </p>
+                    </div>
+                    <div class="d-flex align-center justify-between">
+                        <span>Message reçu il y a 45 minutes</span>
+                        <div>
+                            <button class="btn btn-outline">📞 Rappeler</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card action-card">
+                <div class="card-header">
+                    <h3>✉️ Préparer une réponse automatique</h3>
+                </div>
+                <div class="card-body">
+                    <h4 class="mb-2">Ordonnances</h4>
+                    <div class="prescription-item">
+                        <div class="checkbox">
+                            <label class="custom-checkbox">
+                                <input type="checkbox" checked>
+                                <span class="checkmark"></span>
+                            </label>
+                        </div>
+                        <div>
+                            <div class="prescription-tooltip">
+                                <strong>Radiographie de la cheville gauche</strong> ℹ️
+                                <div class="tooltip-content">
+                                    <h4>Ordonnance</h4>
+                                    <p>Dr. Michel DURAND<br>Médecin Généraliste<br>10 Avenue de la République, 75011 Paris</p>
+                                    <hr>
+                                    <p>Patient: M. Pierre MARTIN, né le 15/05/1975</p>
+                                    <p><strong>Radiographie de la cheville gauche</strong></p>
+                                    <p>Date: 17/03/2025</p>
+                                    <button class="btn btn-primary mt-2">Valider l'ordonnance</button>
+                                </div>
+                            </div>
+                            <!-- La phrase explicative a été retirée comme demandé -->
+                        </div>
+                    </div>
+
+                    <h4 class="mb-2 mt-3">Centres de radiologie à proximité</h4>
+                    <ul class="radiocenter-list">
+                        <li>
+                            🏢
+                            <div>
+                                <strong>Centre d'Imagerie Médicale Saint-Louis</strong>
+                                <p>15 rue Saint-Louis, 75011 Paris</p>
+                            </div>
+                            <span class="distance">350m du domicile</span>
+                        </li>
+                        <li>
+                            🏢
+                            <div>
+                                <strong>Radiologie Médicale Bastille</strong>
+                                <p>8 boulevard Richard Lenoir, 75011 Paris</p>
+                            </div>
+                            <span class="distance">500m du cabinet</span>
+                        </li>
+                        <li>
+                            🏢
+                            <div>
+                                <strong>Centre d'Imagerie République</strong>
+                                <p>25 boulevard Voltaire, 75011 Paris</p>
+                            </div>
+                            <span class="distance">800m du domicile</span>
+                        </li>
+                    </ul>
+
+                    <h4 class="mb-2 mt-3">Proposer un rendez-vous sous 48h</h4>
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <h4>Mars 2025</h4>
+                            <div>
+                                <button class="btn btn-outline">◀️</button>
+                                <button class="btn btn-outline">▶️</button>
+                            </div>
+                        </div>
+                        <div class="calendar-days">
+                            <div class="calendar-day">
+                                <h4>Mardi 18</h4>
+                                <div class="time-slot selected">9:00 - 9:30</div>
+                                <div class="time-slot">12:30 - 13:00</div>
+                                <div class="time-slot">17:30 - 18:00</div>
+                            </div>
+                            <div class="calendar-day">
+                                <h4>Mercredi 19</h4>
+                                <div class="time-slot">11:00 - 11:30</div>
+                                <div class="time-slot">15:00 - 15:30</div>
+                            </div>
+                            <div class="calendar-day">
+                                <h4>Jeudi 20</h4>
+                                <div class="time-slot">10:00 - 10:30</div>
+                                <div class="time-slot">14:00 - 14:30</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-between">
+                    <button class="btn btn-outline">💾 Enregistrer comme brouillon</button>
+                    <button class="btn btn-success">📤 Envoyer la réponse</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Simple interaction for the demo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle time slot selection
+            const timeSlots = document.querySelectorAll('.time-slot');
+            timeSlots.forEach(slot => {
+                slot.addEventListener('click', function() {
+                    timeSlots.forEach(s => s.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+            
+            // Toggle ordonnance tooltip on mobile
+            const tooltipTriggers = document.querySelectorAll('.prescription-tooltip i');
+            tooltipTriggers.forEach(trigger => {
+                trigger.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const tooltip = this.parentNode.querySelector('.tooltip-content');
+                    if (window.innerWidth < 768) {
+                        if (tooltip.style.visibility === 'visible') {
+                            tooltip.style.visibility = 'hidden';
+                            tooltip.style.opacity = '0';
+                        } else {
+                            tooltip.style.visibility = 'visible';
+                            tooltip.style.opacity = '1';
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
